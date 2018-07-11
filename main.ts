@@ -470,38 +470,38 @@ namespace Tetris{
         }
         move(dir: Direction.LEFT|Direction.RIGHT): boolean{
             if(dir === Direction.LEFT){
-                // need to be implemented
+                // move to left
+                if(this.dir === Direction.UP){
+                    if(this.key.x > 0){
+                        this.key = new Point(this.key.realX - 1, this.key.realY);
+                        return true;
+                    }
+                    else {
+                        return false
+                    }
+                }
+                else{
+                    if(this.key.x - Unit > 0){
+                        this.key = new Point(this.key.realX - 1, this.key.realY);
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                }
             }
             else{
-
+                // move to right
+                if (this.dir + Unit < Width){
+                    this.key = new Point(this.key.realX + 1, this.key.realY);
+                    return true;
+                }
+                else{
+                    return false;
+                }
             }
-            return true;
-        }
+        }//end of method move
     }// end of class Shape_S
-
-    //___ 
-    // |   shape
-    class Shape_T implements Shape{
-        key: Point;        
-        dir: Direction = Direction.UP;
- 
-        constructor(x: number, y: number){
-            this.key = new Point(x, y);
-        }
-
-        get body(){
-            switch(this.dir){
-
-            }
-        }
-
-        rotate(): boolean{
-            return true;
-        }
-        move(): boolean{
-            return true;
-        }
-    }
 
     // __
     //  /    shape
@@ -516,17 +516,193 @@ namespace Tetris{
 
         get body(){
             switch(this.dir){
-
+                case Direction.UP:
+                return [
+                    new Point(this.key.realX, this.key.realY - 1),
+                    new Point(this.key.realX, this.key.realY),
+                    new Point(this.key.realX - 1, this.key.realY),
+                    new Point(this.key.realX - 1, this.key.realY + 1),
+                ]
+                break;
+                case Direction.RIGHT:
+                return [
+                    new Point(this.key.realX + 1, this.key.realY),
+                    new Point(this.key.realX, this.key.realY),
+                    new Point(this.key.realX, this.key.realY - 1),
+                    new Point(this.key.realX - 1, this.key.realY - 1),
+                ]
+                break;
             }
         }
 
         rotate(): boolean{
-            return true;
+            if (this.dir !== Direction.UP){
+                this.dir = Direction.UP;
+                return true;
+            }
+            else{
+                if(this.key.x < Width){
+                    this.dir = Direction.RIGHT;
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            }
         }
-        move(): boolean{
-            return true;
+        move(dir: Direction.LEFT|Direction.RIGHT): boolean{
+            if(dir === Direction.LEFT){
+                // move to left
+                if (this.dir - Unit > 0){
+                    this.key = new Point(this.key.realX - 1, this.key.realY);
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            }
+            else{
+                // move to right
+                if(this.dir === Direction.UP){
+                    if(this.key.x < Width){
+                        this.key = new Point(this.key.realX + 1, this.key.realY);
+                        return true;
+                    }
+                    else {
+                        return false
+                    }
+                }
+                else{
+                    if(this.key.x + Unit < Width){
+                        this.key = new Point(this.key.realX + 1, this.key.realY);
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                }
+            }
         }
     }// end of class Shape_Z
+
+    //___ 
+    // |   shape
+    class Shape_T implements Shape{
+        key: Point;        
+        dir: Direction = Direction.UP;
+ 
+        constructor(x: number, y: number){
+            this.key = new Point(x, y);
+        }
+
+        get body(){
+            switch(this.dir){
+                case Direction.UP:
+                return [
+                    new Point(this.key.realX - 1, this.key.realY),
+                    new Point(this.key.realX, this.key.realY),
+                    new Point(this.key.realX + 1, this.key.realY),
+                    new Point(this.key.realX, this.key.realY + 1),
+                ]
+                break;
+                case Direction.RIGHT:
+                return [
+                    new Point(this.key.realX, this.key.realY - 1),
+                    new Point(this.key.realX, this.key.realY),
+                    new Point(this.key.realX, this.key.realY + 1),
+                    new Point(this.key.realX - 1, this.key.realY),
+                ]
+                break;
+                case Direction.DOWN:
+                return [
+                    new Point(this.key.realX - 1, this.key.realY),
+                    new Point(this.key.realX, this.key.realY),
+                    new Point(this.key.realX + 1, this.key.realY),
+                    new Point(this.key.realX, this.key.realY - 1),
+                ]
+                break;
+                case Direction.LEFT:
+                return [
+                    new Point(this.key.realX, this.key.realY - 1),
+                    new Point(this.key.realX, this.key.realY),
+                    new Point(this.key.realX, this.key.realY + 1),
+                    new Point(this.key.realX + 1, this.key.realY),
+                ]
+                break;
+            }
+        }
+        rotate(): boolean{
+            if(this.dir !== Direction.LEFT && this.dir !== Direction.RIGHT){
+                if (this.dir === Direction.UP){
+                    this.dir = Direction.RIGHT;
+                }
+                else {
+                    this.dir = Direction.LEFT;
+                }
+                return true;
+            }// end of if
+            else if (this.dir === Direction.LEFT){
+                if(this.key.x > 0){
+                    this.dir = Direction.UP;
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }// end of else if  (this.dir === Direction.LEFT)
+            else if (this.dir === Direction.RIGHT){
+                if(this.key.x < Width){
+                    this.dir = Direction.DOWN;
+                    return true;
+                }
+                else {
+                    return false;
+                }
+            }// end of else if (this.dir === Direction.RIGHT)
+        }// end of rotate()
+        move(dir: Direction.LEFT|Direction.RIGHT): boolean{
+            if (dir === Direction.LEFT){
+                if(this.dir !== Direction.LEFT){
+                    if(this.key.x - Unit > 0){
+                        this.key = new Point(this.key.realX - 1, this.key.realY);
+                        return true;
+                    }
+                    else{
+                        return false;
+                    }
+                }// end of if
+                else{
+                    if(this.key.x > 0){
+                        this.key = new Point(this.key.realX - 1, this.key.realY);
+                        return true;
+                    }
+                    else{
+                        return false;
+                    }
+                }// end of else
+            }// end of if
+            else{
+                if(this.dir !== Direction.RIGHT){
+                    if(this.key.x - Unit > 0){
+                        this.key = new Point(this.key.realX + 1, this.key.realY);
+                        return true;
+                    }
+                    else{
+                        return false;
+                    }
+                }// end of if
+                else{
+                    if(this.key.x > 0){
+                        this.key = new Point(this.key.realX + 1, this.key.realY);
+                        return true;
+                    }
+                    else{
+                        return false;
+                    }
+                }// end of else
+            }// end of else
+        }
+    }
 
     
     export function run(ctx: CanvasRenderingContext2D){
