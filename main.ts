@@ -163,17 +163,15 @@ namespace Tetris{
         key: Point = new Point(4, 1);
         dir: Direction;
         state: Tetromino_states = Tetromino_states.Alive;
-        abstract get body();
-        abstract rotate(): boolean;
-        abstract move(dir: Direction.LEFT | Direction.RIGHT | Direction.DOWN): boolean;
+        abstract body(key?: Point);
         private put_to_map(map: UMap) {
-            this.body.forEach((p: Point) => {
+            this.body().forEach((p: Point) => {
                 map.set(p.realX, p.realY, this.type);
             });
         }
 
         protected clear_on_map(map: UMap) {
-            this.body.forEach((p: Point) => {
+            this.body().forEach((p: Point) => {
                 map.set(p.realX, p.realY, Tetromino_types.Blank);
             });
         }
@@ -192,6 +190,18 @@ namespace Tetris{
             }
             this.key = p;
             this.put_to_map(game_map);
+        }
+
+        move(){
+
+        }
+
+        rotate(){
+
+        }
+
+        predict(){
+
         }
     }// end of interface Shape
 
@@ -214,80 +224,26 @@ namespace Tetris{
             this.setPos(new Point(x, y));
         }
 
-        get body(){
+        body(key = this.key){
             switch (this.dir){
                 case Direction.UP: 
                     return [
-                        new Point(this.key.realX, this.key.realY - 1),
-                        new Point(this.key.realX, this.key.realY),
-                        new Point(this.key.realX, this.key.realY + 1),
-                        new Point(this.key.realX, this.key.realY + 2),
+                        new Point(key.realX, key.realY - 1),
+                        new Point(key.realX, key.realY),
+                        new Point(key.realX, key.realY + 1),
+                        new Point(key.realX, key.realY + 2),
                     ]
                     break;
                 case Direction.RIGHT:
                     return [
-                        new Point(this.key.realX - 1, this.key.realY),
-                        new Point(this.key.realX, this.key.realY),
-                        new Point(this.key.realX + 1, this.key.realY),
-                        new Point(this.key.realX + 2, this.key.realY),
+                        new Point(key.realX - 1, key.realY),
+                        new Point(key.realX, key.realY),
+                        new Point(key.realX + 1, key.realY),
+                        new Point(key.realX + 2, key.realY),
                     ]
                     break;
             }
         }
-        rotate(): boolean{
-            if (this.dir === Direction.UP){
-                if ((this.key.realX - 1) * Unit < 0 || (this.key.realX + 2) * Unit > Width){
-                    return false;
-                }
-                else{
-                    // clear last
-                    this.setDir(Direction.RIGHT);
-                    return true;
-                }
-            }// end of if
-            else if (this.dir === Direction.RIGHT){
-                if ((this.key.realY - 1) * Unit < 0 || (this.key.realY) * Unit > Height){
-                    return false;
-                }
-                else{
-                    // clear last
-                    this.setDir(Direction.UP);
-                    return true;
-                }
-            }// end of else if
-        }
-
-        move(dir: Direction.LEFT | Direction.RIGHT | Direction.DOWN): boolean{
-            if(dir === Direction.LEFT){
-                if(this.body[0].x <= 0){
-                    return false;
-                }
-                else{
-                    //can move
-                    // clear last
-                    this.setPos(new Point(this.key.realX - 1, this.key.realY));
-                    return true;
-                }
-            }// end of if 
-            else if(dir === Direction.RIGHT){
-                if(this.body[3].x >= Width){
-                    return false;
-                }
-                else{
-                    //can move
-                    // clear last
-                    this.setPos(new Point(this.key.realX + 1, this.key.realY));
-                    return true;
-                }
-            }// end of else if
-            else{
-                // move downward
-                if(this.dir === Direction.UP){
-
-                }
-            }
-            return true;
-        }//end of move
     }// end of class Shape_I
 
     // |___ shape
@@ -301,128 +257,46 @@ namespace Tetris{
             this.setPos(new Point(x, y));
         }
 
-        get body(){
+        body(key = this.key){
             switch(this.dir){
                 case Direction.UP:
                 // J
                 return [
-                    new Point(this.key.realX, this.key.realY - 1),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX, this.key.realY + 1),
-                    new Point(this.key.realX - 1, this.key.realY + 1),
+                    new Point(key.realX, key.realY - 1),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX, key.realY + 1),
+                    new Point(key.realX - 1, key.realY + 1),
                 ]
                 break;
                 case Direction.RIGHT:
                 // |___
                 return [
-                    new Point(this.key.realX + 1, this.key.realY),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX - 1, this.key.realY),
-                    new Point(this.key.realX - 1, this.key.realY - 1),
+                    new Point(key.realX + 1, key.realY),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX - 1, key.realY),
+                    new Point(key.realX - 1, key.realY - 1),
                 ]
                 break;
                 case Direction.DOWN:
                 // ┌
                 return [
-                    new Point(this.key.realX, this.key.realY + 1),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX, this.key.realY - 1),
-                    new Point(this.key.realX + 1, this.key.realY - 1),
+                    new Point(key.realX, key.realY + 1),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX, key.realY - 1),
+                    new Point(key.realX + 1, key.realY - 1),
                 ]
                 break;
                 case Direction.LEFT:
                 // --┐
                 return [
-                    new Point(this.key.realX - 1, this.key.realY),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX + 1, this.key.realY),
-                    new Point(this.key.realX + 1, this.key.realY + 1),
+                    new Point(key.realX - 1, key.realY),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX + 1, key.realY),
+                    new Point(key.realX + 1, key.realY + 1),
                 ]
                 break;
             }// end of switch
         }// end of get body()
-
-        rotate(): boolean{
-            if(this.dir !== Direction.DOWN){
-                // clear last
-                let dir = null;
-                switch(this.dir){
-                    case Direction.UP:
-                    dir = Direction.RIGHT;
-                    break;
-                    case Direction.RIGHT:
-                    dir = Direction.DOWN;
-                    break;
-                    case Direction.LEFT:
-                    dir = Direction.UP;
-                    break;
-                }
-                this.setDir(dir);
-                return true;
-            }// end of if
-            else{
-                if(this.key.x <= 0){
-                    return false;
-                }
-                else{
-                    // clear last
-                    this.setDir(Direction.LEFT);
-                    return true;
-                }
-            }
-        }// end of else
-
-        move(dir: Direction.LEFT|Direction.RIGHT): boolean{
-            if(dir === Direction.LEFT){
-                if(this.dir !== Direction.DOWN){
-                    if(this.key.x - Unit > 0){
-                        //can move
-                         // clear last
-                        this.setPos(new Point(this.key.realX - 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }
-                else {
-                    if(this.key.x > 0){
-                        //can move
-                        this.setPos(new Point(this.key.realX - 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }
-            }// end of if
-            else if(dir === Direction.RIGHT){
-                // move to right
-                if(this.dir !== Direction.UP){
-                    if(this.key.x + Unit < Width){
-                        // can move
-                        this.setPos(new Point(this.key.realX + 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }
-                else {
-                    if(this.key.x + Unit < Width){
-                        // can move
-                        this.setPos(new Point(this.key.realX + 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }
-            }// end of else if
-            else {
-
-            }
-        }
     }// end of class Shape_J
 
     // ___| shape
@@ -436,121 +310,45 @@ namespace Tetris{
             this.setPos(new Point(x, y));
         } 
 
-        get body(){
+        body(key = this.key){
             switch(this.dir){
                 case Direction.UP:
                 // L
                 return [
-                    new Point(this.key.realX, this.key.realY - 1),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX, this.key.realY + 1),
-                    new Point(this.key.realX + 1, this.key.realY + 1),
+                    new Point(key.realX, key.realY - 1),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX, key.realY + 1),
+                    new Point(key.realX + 1, key.realY + 1),
                 ]
                 break;
                 case Direction.RIGHT:
                 // ┌--
                 return [
-                    new Point(this.key.realX + 1, this.key.realY),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX - 1, this.key.realY),
-                    new Point(this.key.realX - 1, this.key.realY + 1),
+                    new Point(key.realX + 1, key.realY),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX - 1, key.realY),
+                    new Point(key.realX - 1, key.realY + 1),
                 ]
                 break;
                 case Direction.DOWN:
                 // ┐
                 return [
-                    new Point(this.key.realX, this.key.realY + 1),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX, this.key.realY - 1),
-                    new Point(this.key.realX - 1, this.key.realY - 1),
+                    new Point(key.realX, key.realY + 1),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX, key.realY - 1),
+                    new Point(key.realX - 1, key.realY - 1),
                 ]
                 break;
                 case Direction.LEFT:
                 // --┘
                 return [
-                    new Point(this.key.realX - 1, this.key.realY),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX + 1, this.key.realY),
-                    new Point(this.key.realX + 1, this.key.realY - 1),
+                    new Point(key.realX - 1, key.realY),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX + 1, key.realY),
+                    new Point(key.realX + 1, key.realY - 1),
                 ]
                 break;
             }// end of switch
-        }
-
-        rotate(): boolean{
-            if(this.dir !== Direction.UP){
-                let dir = null;
-                switch(this.dir){
-                    case Direction.RIGHT:
-                    dir = Direction.DOWN;
-                    break;
-                    case Direction.DOWN:
-                    dir = Direction.LEFT;
-                    break;
-                    case Direction.LEFT:
-                    dir = Direction.UP;
-                    break;
-                }
-                this.setDir(dir);
-                return true;
-            }// end of if
-            else{
-                if(this.key.x <= 0){
-                    return false;
-                }
-                else{
-                    this.setDir(Direction.RIGHT);
-                    return true;
-                }
-            }
-        }
-        move(dir: Direction.LEFT|Direction.RIGHT): boolean{
-            if(dir === Direction.LEFT){
-                // move to left
-                if(this.dir !== Direction.UP){
-                    if (this.key.x - Unit > 0){
-                        this.setPos(new Point(this.key.realX - 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }
-                else {
-                    if (this.key.x > 0){
-                        this.setPos(new Point(this.key.realX - 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }
-            }// end of if
-            else if(dir === Direction.RIGHT){
-                // move to right
-                if(this.dir !== Direction.DOWN){
-                    if (this.key.x + Unit < Width){
-                        this.setPos(new Point(this.key.realX + 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }
-                else {
-                    if (this.key.x < Width){
-                        this.setPos(new Point(this.key.realX + 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }
-            }// end of else if 
-            else {
-
-            }
-            return true;
         }
     }// end of class Shape_L
 
@@ -565,44 +363,13 @@ namespace Tetris{
             this.setPos(new Point(x, y));
         }
 
-        get body(){
+        body(key = this.key){
             return [
-                new Point(this.key.realX, this.key.realY),
-                new Point(this.key.realX + 1, this.key.realY),
-                new Point(this.key.realX, this.key.realY + 1),
-                new Point(this.key.realX + 1, this.key.realY + 1),
+                new Point(key.realX, key.realY),
+                new Point(key.realX + 1, key.realY),
+                new Point(key.realX, key.realY + 1),
+                new Point(key.realX + 1, key.realY + 1),
             ];
-        }
-
-        rotate(): boolean{
-            return false;
-        }
-        move(dir: Direction.LEFT|Direction.RIGHT): boolean{
-            if(dir === Direction.LEFT){
-                // move to left
-                if (this.key.x > 0){
-                    // can move
-                    this.setPos(new Point(this.key.realX - 1, this.key.realY));
-                    return true;
-                }
-                else{
-                    return false;
-                }
-            }
-            else if(dir === Direction.RIGHT){
-                // move to right
-                if (this.key.x < Width){
-                    // can move
-                    this.setPos(new Point(this.key.realX + 1, this.key.realY));
-                    return true;
-                }
-                else{
-                    return false;
-                }
-            }
-            else {
-
-            }
         }
     }// end of class Shape_O
 
@@ -618,78 +385,26 @@ namespace Tetris{
             this.setPos(new Point(x, y));
         }
 
-        get body(){
+        body(key = this.key){
             switch(this.dir){
                 case Direction.UP:
                 return [
-                    new Point(this.key.realX, this.key.realY - 1),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX + 1, this.key.realY),
-                    new Point(this.key.realX + 1, this.key.realY + 1),
+                    new Point(key.realX, key.realY - 1),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX + 1, key.realY),
+                    new Point(key.realX + 1, key.realY + 1),
                 ]
                 break;
                 case Direction.RIGHT:
                 return [
-                    new Point(this.key.realX + 1, this.key.realY),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX, this.key.realY + 1),
-                    new Point(this.key.realX - 1, this.key.realY + 1),
+                    new Point(key.realX + 1, key.realY),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX, key.realY + 1),
+                    new Point(key.realX - 1, key.realY + 1),
                 ]
                 break;
             }
         }// end of get body()
-
-        rotate(): boolean{
-            if (this.dir !== Direction.UP){
-                this.setDir(Direction.UP);
-                return true;
-            }
-            else{
-                if(this.key.x > 0){
-                    this.setDir(Direction.RIGHT);
-                    return true;
-                }
-                else{
-                    return false;
-                }
-            }
-        }
-        move(dir: Direction.LEFT|Direction.RIGHT): boolean{
-            if(dir === Direction.LEFT){
-                // move to left
-                if(this.dir === Direction.UP){
-                    if(this.key.x > 0){
-                        this.setPos(new Point(this.key.realX - 1, this.key.realY));
-                        return true;
-                    }
-                    else {
-                        return false
-                    }
-                }
-                else{
-                    if(this.key.x - Unit > 0){
-                        this.setPos(new Point(this.key.realX - 1, this.key.realY));
-                        return true;
-                    }
-                    else {
-                        return false;
-                    }
-                }
-            }
-            else if(dir === Direction.RIGHT){
-                // move to right
-                if (this.dir + Unit < Width){
-                    this.setPos(new Point(this.key.realX + 1, this.key.realY));
-                    return true;
-                }
-                else{
-                    return false;
-                }
-            }
-            else {
-
-            }
-        }//end of method move
     }// end of class Shape_S
 
     // __
@@ -705,76 +420,24 @@ namespace Tetris{
             this.setPos(new Point(x, y));
         }
 
-        get body(){
+        body(key = this.key){
             switch(this.dir){
                 case Direction.UP:
                 return [
-                    new Point(this.key.realX, this.key.realY - 1),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX - 1, this.key.realY),
-                    new Point(this.key.realX - 1, this.key.realY + 1),
+                    new Point(key.realX, key.realY - 1),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX - 1, key.realY),
+                    new Point(key.realX - 1, key.realY + 1),
                 ]
                 break;
                 case Direction.RIGHT:
                 return [
-                    new Point(this.key.realX + 1, this.key.realY),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX, this.key.realY - 1),
-                    new Point(this.key.realX - 1, this.key.realY - 1),
+                    new Point(key.realX + 1, key.realY),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX, key.realY - 1),
+                    new Point(key.realX - 1, key.realY - 1),
                 ]
                 break;
-            }
-        }
-
-        rotate(): boolean{
-            if (this.dir !== Direction.UP){
-                this.setDir(Direction.UP);
-                return true;
-            }
-            else{
-                if(this.key.x < Width){
-                    this.setDir(Direction.RIGHT);
-                    return true;
-                }
-                else{
-                    return false;
-                }
-            }
-        }
-        move(dir: Direction.LEFT|Direction.RIGHT): boolean{
-            if(dir === Direction.LEFT){
-                // move to left
-                if (this.dir - Unit > 0){
-                    this.setPos(new Point(this.key.realX - 1, this.key.realY));
-                    return true;
-                }
-                else{
-                    return false;
-                }
-            }
-            else if(dir === Direction.RIGHT){
-                // move to right
-                if(this.dir === Direction.UP){
-                    if(this.key.x < Width){
-                        this.setPos(new Point(this.key.realX + 1, this.key.realY));
-                        return true;
-                    }
-                    else {
-                        return false
-                    }
-                }
-                else{
-                    if(this.key.x + Unit < Width){
-                        this.setPos(new Point(this.key.realX + 1, this.key.realY));
-                        return true;
-                    }
-                    else {
-                        return false;
-                    }
-                }
-            }
-            else {
-
             }
         }
     }// end of class Shape_Z
@@ -791,114 +454,40 @@ namespace Tetris{
             this.setPos(new Point(x, y));
         }
 
-        get body(){
+        body(key = this.key){
             switch(this.dir){
                 case Direction.UP:
                 return [
-                    new Point(this.key.realX - 1, this.key.realY),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX + 1, this.key.realY),
-                    new Point(this.key.realX, this.key.realY + 1),
+                    new Point(key.realX - 1, key.realY),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX + 1, key.realY),
+                    new Point(key.realX, key.realY + 1),
                 ]
                 break;
                 case Direction.RIGHT:
                 return [
-                    new Point(this.key.realX, this.key.realY - 1),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX, this.key.realY + 1),
-                    new Point(this.key.realX - 1, this.key.realY),
+                    new Point(key.realX, key.realY - 1),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX, key.realY + 1),
+                    new Point(key.realX - 1, key.realY),
                 ]
                 break;
                 case Direction.DOWN:
                 return [
-                    new Point(this.key.realX - 1, this.key.realY),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX + 1, this.key.realY),
-                    new Point(this.key.realX, this.key.realY - 1),
+                    new Point(key.realX - 1, key.realY),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX + 1, key.realY),
+                    new Point(key.realX, key.realY - 1),
                 ]
                 break;
                 case Direction.LEFT:
                 return [
-                    new Point(this.key.realX, this.key.realY - 1),
-                    new Point(this.key.realX, this.key.realY),
-                    new Point(this.key.realX, this.key.realY + 1),
-                    new Point(this.key.realX + 1, this.key.realY),
+                    new Point(key.realX, key.realY - 1),
+                    new Point(key.realX, key.realY),
+                    new Point(key.realX, key.realY + 1),
+                    new Point(key.realX + 1, key.realY),
                 ]
                 break;
-            }
-        }
-        rotate(): boolean{
-            if(this.dir !== Direction.LEFT && this.dir !== Direction.RIGHT){
-                if (this.dir === Direction.UP){
-                    this.setDir(Direction.RIGHT);
-                }
-                else {
-                    this.setDir(Direction.LEFT);
-                }
-                return true;
-            }// end of if
-            else if (this.dir === Direction.LEFT){
-                if(this.key.x > 0){
-                    this.setDir(Direction.UP);
-                    return true;
-                }
-                else {
-                    return false;
-                }
-            }// end of else if  (this.dir === Direction.LEFT)
-            else if (this.dir === Direction.RIGHT){
-                if(this.key.x < Width){
-                    this.setDir(Direction.DOWN);
-                    return true;
-                }
-                else {
-                    return false;
-                }
-            }// end of else if (this.dir === Direction.RIGHT)
-        }// end of rotate()
-        move(dir: Direction.LEFT|Direction.RIGHT): boolean{
-            if (dir === Direction.LEFT){
-                if(this.dir !== Direction.LEFT){
-                    if(this.key.x - Unit > 0){
-                        this.setPos(new Point(this.key.realX - 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }// end of if
-                else{
-                    if(this.key.x > 0){
-                        this.setPos(new Point(this.key.realX - 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }// end of else
-            }// end of if
-            else if(dir === Direction.RIGHT){
-                if(this.dir !== Direction.RIGHT){
-                    if(this.key.x - Unit > 0){
-                        this.setPos(new Point(this.key.realX + 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }// end of if
-                else{
-                    if(this.key.x > 0){
-                        this.setPos(new Point(this.key.realX + 1, this.key.realY));
-                        return true;
-                    }
-                    else{
-                        return false;
-                    }
-                }// end of else
-            }// end of else if 
-            else {
-
             }
         }
     }
