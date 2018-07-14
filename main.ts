@@ -1,9 +1,10 @@
 namespace Tetris{
-    const Unit = 50;
+    const Unit = 45;
     const Width = 10;
-    const Height = 15;
+    const Height = 20;
     const DefaultSpeed = 550;
     const Fast_Move_Speed = 50;
+    const Init_Y = -1;
 
     const I_color = '#7FFF99';
     const J_color = '#FF7F82';
@@ -16,11 +17,10 @@ namespace Tetris{
     const bg_color = 'rgb(222,222,222)';
 
     export class Game{
-        map: UMap;
+        readonly canvas: HTMLCanvasElement;
+        readonly map: UMap;
         readonly sounds: {
-            bg1: HTMLAudioElement, 
-            bg2: HTMLAudioElement,
-            bg3: HTMLAudioElement,
+            bgm: HTMLAudioElement[], 
             line_cleared: HTMLAudioElement,
             move: HTMLAudioElement,
             rotate: HTMLAudioElement,
@@ -29,17 +29,42 @@ namespace Tetris{
         score: number;
         speed: number;
         process_id: number;
-        readonly width: number;
-        readonly height: number;
-        readonly unit: number;
-        constructor(width: number = Width, height: number = Height, unit: number = Unit){
+        width: number;
+        height: number;
+        private unit: number;
+
+        private init(){
             this.score = 0;
+            this.map.empty()
+            this.tetromino = null
+            this.speed = DefaultSpeed;
+
+            const t = Math.floor(Math.random() * 10000 % 3);
+            this.sounds.bgm[t].play();
+        }
+
+        // 
+        scale(unit: number){
+            this.width = this.width / this.unit * unit;
+            this.height = this.height / this.unit * unit
+            this.unit = unit;
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+        }
+
+        resize(width: number, height: number){
+            this.width = width * this.unit;
+            this.height = height * this.unit;
+            this.canvas.width = this.width;
+            this.canvas.height = this.height;
+        }
+
+        constructor(width: number = Width, height: number = Height, unit: number = Unit, canvas: HTMLCanvasElement){
             this.width = width * unit;
             this.height = height * unit;
             this.unit = unit;
             this.map = new UMap(this.width, this.height);
-            this.speed = DefaultSpeed;
-            this.tetromino = null;
+            this.canvas = canvas;
 
 
             // bgms
@@ -52,7 +77,7 @@ namespace Tetris{
             let move = new Audio();
             let rotate = new Audio();
 
-            this.sounds = {bg1, bg2, bg3, line_cleared: lineClear, move, rotate}
+            this.sounds = {bgm: [bg1, bg2, bg3], line_cleared: lineClear, move, rotate}
 
             bg1.src = "./../assets/bgm/bg1.mp3";
             bg1.loop = true;
@@ -73,21 +98,13 @@ namespace Tetris{
             body.appendChild(move);
             body.appendChild(rotate);
 
-            const t = Math.floor(Math.random() * 10000 % 3);
-            switch(t){
-                case 0:
-                bg1.play()
-                break;
-                case 1:
-                bg2.play()
-                break;
-                case 2:
-                bg3.play()
-                break;
-            }
+
+            this.init();
         }// end of constructor
 
         render(ctx: CanvasRenderingContext2D){
+            const self = this;
+
             // render method
             ctx.fillStyle = bg_color;
             ctx.fillRect(0, 0, this.width, this.height);
@@ -119,8 +136,40 @@ namespace Tetris{
                     default:
                     return;
                 }
-                ctx.fillRect(x * Unit, y * Unit, Unit, Unit);
+                ctx.fillRect(x * self.unit, y * self.unit, self.unit, self.unit);
             });
+
+            // predict 
+            if (this.tetromino !== null){
+                this.tetromino.predict().forEach((p) => {
+                    switch (this.tetromino.type){
+                        case Tetromino_types.I:
+                        ctx.strokeStyle = I_color;
+                        break;
+                        case Tetromino_types.J:
+                        ctx.strokeStyle = J_color;
+                        break;
+                        case Tetromino_types.L:
+                        ctx.strokeStyle = L_color;
+                        break;
+                        case Tetromino_types.O:
+                        ctx.strokeStyle = O_color;
+                        break;
+                        case Tetromino_types.Z:
+                        ctx.strokeStyle = Z_color;
+                        break;
+                        case Tetromino_types.S:
+                        ctx.strokeStyle = S_color;
+                        break;
+                        case Tetromino_types.T:
+                        ctx.strokeStyle = T_color;
+                        break;
+                        default:
+                        return;
+                    }
+                    ctx.strokeRect(p.x, p.y, self.unit, self.unit);
+                });// end of foreach
+            }// end of if
         }// end of render
 
         run(){
@@ -149,6 +198,7 @@ namespace Tetris{
                     case Key.KeyHome:
                     break;
                     case Key.keyEnd:
+                    self.map.empty();
                     break;
                     case Key.KeyUp:
                     if(self.tetromino.rotate()){
@@ -194,28 +244,37 @@ namespace Tetris{
             // if(self.tetromino !== null) console.log(self.tetromino.state === Tetromino_states.Alive ? "Alive": "dead")  //test pass!
             
             if(self.tetromino === null || self.tetromino.state === Tetromino_states.Dead){
+                if(self.tetromino !== null && self.tetromino.key.realY === Init_Y){
+                    this.sounds.bgm.forEach((bgm) => {
+                        bgm.pause()
+                        bgm.currentTime = 0;
+                    })
+                    alert("游戏结束！分数： " + self.score + "点击确定重新开始");
+                    self.init();
+                }
+
                 const t = Math.floor(Math.random() * 10000 % 7);
                 switch(t){
                     case 0:
-                    self.tetromino = new Tetromino_I(4, 1, self.map);
+                    self.tetromino = new Tetromino_I(4, Init_Y, self.map);
                     break;
                     case 1:
-                    self.tetromino = new Tetromino_J(4, 1, self.map);
+                    self.tetromino = new Tetromino_J(4, Init_Y, self.map);
                     break;
                     case 2:
-                    self.tetromino = new Tetromino_L(4, 1, self.map);
+                    self.tetromino = new Tetromino_L(4, Init_Y, self.map);
                     break;
                     case 3:
-                    self.tetromino = new Tetromino_O(4, 1, self.map);
+                    self.tetromino = new Tetromino_O(4, Init_Y, self.map);
                     break;
                     case 4:
-                    self.tetromino = new Tetromino_Z(4, 1, self.map);
+                    self.tetromino = new Tetromino_Z(4, Init_Y, self.map);
                     break;
                     case 5:
-                    self.tetromino = new Tetromino_S(4, 1, self.map);
+                    self.tetromino = new Tetromino_S(4, Init_Y, self.map);
                     break;
                     case 6:
-                    self.tetromino = new Tetromino_T(4, 1, self.map);
+                    self.tetromino = new Tetromino_T(4, Init_Y, self.map);
                     break;
                 }
                 
@@ -223,16 +282,32 @@ namespace Tetris{
             
             self.tetromino.move(Direction.DOWN);
             if(self.tetromino.state === Tetromino_states.Dead){
-                if(self.map.handle_remove_rows()){
-                    self.score ++;
+                const line = self.map.handle_remove_rows();
+                if(line > 0){
+                    switch(line){
+                        case 1:
+                        self.score += 10;
+                        break;
+                        case 2: 
+                        self.score += 20;
+                        break;
+                        case 3: 
+                        self.score += 50;
+                        break;
+                        case 4: 
+                        self.score += 100;
+                        break;
+                        default:
+                        throw Error('Unusual line clear!');
+                    }
                     self.sounds.line_cleared.play();
-                    console.log('played')
+                    console.log('Score： ' + self.score);
                 }
             }
 
             
             self.process_id = setTimeout(this.process.bind(this), self.speed);
-            console.count("process!");
+            // console.count("process!");
         }
     }
 
@@ -310,11 +385,13 @@ namespace Tetris{
 
         // private last: Point[];
         set(x: number, y: number, t: Tetromino_types){ 
+            if(y < 0) return;
             this.data[y][x] = t;
         }
 
         get(x: number, y: number): Tetromino_types|never{
-            if(x < this.width && x >= 0 && y < this.length && y >=0){
+            if(x < this.width && x >= 0 && y < this.length){
+                if(y < 0) return Tetromino_types.Blank;
                 return this.data[y][x];
             }
             else{
@@ -323,7 +400,7 @@ namespace Tetris{
         }
 
         valid(p: Point){
-            if(p.realX < this.width && p.realX >= 0 && p.realY < this.length && p.realY >=0){
+            if(p.realX < this.width && p.realX >= 0 && p.realY < this.length){
                 return true;
             }
             else return false;
@@ -397,6 +474,7 @@ namespace Tetris{
         private put_to_map(map: UMap) {
             // console.log(this.body())
             this.body().forEach((p: Point) => {
+                if(p.realY < 0) return;
                 map.set(p.realX, p.realY, this.type);
             });
         }
@@ -437,6 +515,7 @@ namespace Tetris{
                     count ++;
                 }
             });
+            // console.log(count)
             if(count === 0)
                 return true;
             else
@@ -532,8 +611,10 @@ namespace Tetris{
             }
         }
 
-        predict(){
-
+        predict(): Point[]{
+            let delta = 0;
+            while(this.can_put(new Point(this.key.realX, this.key.realY + delta), undefined)) delta++;
+            return this.body(new Point(this.key.realX, this.key.realY + delta - 1));
         }
     }// end of interface Shape
 
@@ -881,10 +962,11 @@ namespace Tetris{
     }
 }
 
+let game;
 
 function main(){
     const canvas = window.document.querySelector('canvas');
-    const game = new Tetris.Game()
+    game = new Tetris.Game(undefined, undefined, undefined, canvas);
     if(canvas !== null){
         // init canvas size
         canvas.width = game.width;
