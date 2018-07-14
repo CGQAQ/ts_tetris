@@ -323,6 +323,7 @@ namespace Tetris{
                         });
                         alert("游戏结束！分数： " + self.score + "点击确定重新开始");
                         self.init();
+                        self.state = Game_state.Started;
                     }
     
                     

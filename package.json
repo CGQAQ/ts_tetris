@@ -4,6 +4,12 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "build": "tsc -w"
+    "build": "tsc -w",
+    "uglify": "gulp uglify"
+  },
+  "dependencies": {
+    "gulp": "^3.9.1",
+    "gulp-rename": "^1.3.0",
+    "gulp-uglify": "^3.0.0"
   }
 }
