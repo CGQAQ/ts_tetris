@@ -16,6 +16,15 @@ namespace Tetris{
 
     const bg_color = 'rgb(222,222,222)';
 
+    console.log("Design & Written By CG, forward code & republish Please write clearly original author!");
+    console.log("Press Home button to start & pause the game, End button to stop the game.");
+
+    enum Game_state{
+        Started,
+        Stopped,
+        Paused,
+    }
+
     export class Game{
         readonly canvas: HTMLCanvasElement;
         readonly map: UMap;
@@ -35,6 +44,8 @@ namespace Tetris{
         height: number;
         private unit: number;
 
+        state: Game_state;
+
         next: Tetromino;
 
         private init(){
@@ -46,6 +57,7 @@ namespace Tetris{
 
             const t = Math.floor(Math.random() * 10000 % 3);
             this.sounds.bgm[t].play();
+            this.state = Game_state.Stopped;
         }
 
         // 
@@ -204,29 +216,39 @@ namespace Tetris{
             document.onkeydown = function(ev) {
                 switch(ev.key){
                     case Key.KeyHome:
+                    if(self.state !== Game_state.Started){
+                        self.state = Game_state.Started;
+                    }
+                    else{
+                        self.state = Game_state.Paused;
+                    }
                     break;
                     case Key.keyEnd:
-                    self.map.empty();
+                    self.sounds.bgm.forEach((bgm) => {
+                        bgm.pause()
+                        bgm.currentTime = 0;
+                    })
+                    self.init();
                     break;
                     case Key.KeyUp:
-                    if(self.tetromino.rotate()){
+                    if(self.state === Game_state.Started && self.tetromino.rotate()){
                         self.sounds.rotate.play();
                     }
                     break;
                     case Key.KeyDown:
-                    if(self.speed !== Fast_Move_Speed){
+                    if(self.state === Game_state.Started && self.speed !== Fast_Move_Speed){
                         self.speed = Fast_Move_Speed;
                         clearTimeout(self.process_id);
                         self.process_id = setTimeout(self.process.bind(self), self.speed);
                     }
                     break;
                     case Key.keyLeft:
-                    if(self.tetromino.move(Direction.LEFT)){
+                    if(self.state === Game_state.Started && self.tetromino.move(Direction.LEFT)){
                         self.sounds.move.play();
                     }
                     break;
                     case Key.KeyRight:
-                    if(self.tetromino.move(Direction.RIGHT)){
+                    if(self.state === Game_state.Started && self.tetromino.move(Direction.RIGHT)){
                         self.sounds.move.play();
                     }
                     break;
@@ -291,86 +313,85 @@ namespace Tetris{
             // console.log(self.tetromino)
             // if(self.tetromino !== null) console.log(self.tetromino.state === Tetromino_states.Alive ? "Alive": "dead")  //test pass!
             
-            if(self.tetromino === null || self.tetromino.state === Tetromino_states.Dead){
-
-                if(self.tetromino !== null && self.tetromino.key.realY === Init_Y){
-                    // console.log(self.tetromino.key.realY)
-                    this.sounds.bgm.forEach((bgm) => {
-                        bgm.pause()
-                        bgm.currentTime = 0;
-                    })
-                    alert("游戏结束！分数： " + self.score + "点击确定重新开始");
-                    self.init();
-                }
-
-                
-
-                if(self.tetromino === null){
-                    self.tetromino = this.generate_tetromino();
-                }
-                else if(self.tetromino !== null && self.next !== null){
-                    self.tetromino = self.next;
-                    self.next = this.generate_tetromino();
-                }
-
-
-                if(self.next === null){
-                    self.next = this.generate_tetromino();
-                }
-
-                switch(self.next.type){
-                    case Tetromino_types.I:
-                    console.log("下一个： 长棍");
-                    break;
-                    case Tetromino_types.J: 
-                    console.log("下一个： J型伞把");
-                    break;
-                    case Tetromino_types.L: 
-                    console.log("下一个： L型伞把");
-                    break;
-                    case Tetromino_types.O: 
-                    console.log("下一个： 方块");
-                    break;
-                    case Tetromino_types.Z: 
-                    console.log("下一个： Z型拐爪");
-                    break;
-                    case Tetromino_types.S: 
-                    console.log("下一个： S型拐爪");
-                    break;
-                    case Tetromino_types.T: 
-                    console.log("下一个： T型伞把");
-                    break;
-                }// end of switch
-            }// end of if
-            
-            self.tetromino.move(Direction.DOWN);
-            
-            // console.log(self.tetromino.key.realY)
-            if(self.tetromino.state === Tetromino_states.Dead){
-                const line = self.map.handle_remove_rows();
-                if(line > 0){
-                    switch(line){
-                        case 1:
-                        self.score += 10;
-                        break;
-                        case 2: 
-                        self.score += 20;
-                        break;
-                        case 3: 
-                        self.score += 50;
-                        break;
-                        case 4: 
-                        self.score += 100;
-                        break;
-                        default:
-                        throw Error('Unusual line clear!');
+            if(self.state === Game_state.Started){
+                if(self.tetromino === null || self.tetromino.state === Tetromino_states.Dead){
+                    if(self.tetromino !== null && self.tetromino.key.realY === Init_Y){
+                        // console.log(self.tetromino.key.realY)
+                        this.sounds.bgm.forEach((bgm) => {
+                            bgm.pause()
+                            bgm.currentTime = 0;
+                        });
+                        alert("游戏结束！分数： " + self.score + "点击确定重新开始");
+                        self.init();
                     }
-                    self.sounds.line_cleared.play();
-                    console.log('Score： ' + self.score);
+    
+                    
+    
+                    if(self.tetromino === null){
+                        self.tetromino = this.generate_tetromino();
+                    }
+                    else if(self.tetromino !== null && self.next !== null){
+                        self.tetromino = self.next;
+                        self.next = this.generate_tetromino();
+                    }
+    
+    
+                    if(self.next === null){
+                        self.next = this.generate_tetromino();
+                    }
+    
+                    switch(self.next.type){
+                        case Tetromino_types.I:
+                        console.log("下一个： 长棍");
+                        break;
+                        case Tetromino_types.J: 
+                        console.log("下一个： J型伞把");
+                        break;
+                        case Tetromino_types.L: 
+                        console.log("下一个： L型伞把");
+                        break;
+                        case Tetromino_types.O: 
+                        console.log("下一个： 方块");
+                        break;
+                        case Tetromino_types.Z: 
+                        console.log("下一个： Z型拐爪");
+                        break;
+                        case Tetromino_types.S: 
+                        console.log("下一个： S型拐爪");
+                        break;
+                        case Tetromino_types.T: 
+                        console.log("下一个： T型伞把");
+                        break;
+                    }// end of switch
+                }// end of if
+                
+                self.tetromino.move(Direction.DOWN);
+                
+                // console.log(self.tetromino.key.realY)
+                if(self.tetromino.state === Tetromino_states.Dead){
+                    const line = self.map.handle_remove_rows();
+                    if(line > 0){
+                        switch(line){
+                            case 1:
+                            self.score += 10;
+                            break;
+                            case 2: 
+                            self.score += 20;
+                            break;
+                            case 3: 
+                            self.score += 50;
+                            break;
+                            case 4: 
+                            self.score += 100;
+                            break;
+                            default:
+                            throw Error('Unusual line clear!');
+                        }
+                        self.sounds.line_cleared.play();
+                        console.log('Score： ' + self.score);
+                    }
                 }
-            }
-
-            
+            } //end of if(self.state === Game_state.Started){
             self.process_id = setTimeout(this.process.bind(this), self.speed);
             // console.count("process!");
         }
