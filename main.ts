@@ -1,7 +1,9 @@
 namespace Tetris{
-    export const Unit = 50;
-    export const Width = 10 * Unit;
-    export const Height = 15 * Unit;
+    const Unit = 50;
+    const Width = 10;
+    const Height = 15;
+    const DefaultSpeed = 550;
+    const Fast_Move_Speed = 50;
 
     const I_color = '#7FFF99';
     const J_color = '#FF7F82';
@@ -13,8 +15,226 @@ namespace Tetris{
 
     const bg_color = 'rgb(222,222,222)';
 
+    export class Game{
+        map: UMap;
+        readonly sounds: {
+            bg1: HTMLAudioElement, 
+            bg2: HTMLAudioElement,
+            bg3: HTMLAudioElement,
+            line_cleared: HTMLAudioElement,
+            move: HTMLAudioElement,
+            rotate: HTMLAudioElement,
+        };
+        tetromino: Tetromino;
+        score: number;
+        speed: number;
+        process_id: number;
+        readonly width: number;
+        readonly height: number;
+        readonly unit: number;
+        constructor(width: number = Width, height: number = Height, unit: number = Unit){
+            this.score = 0;
+            this.width = width * unit;
+            this.height = height * unit;
+            this.unit = unit;
+            this.map = new UMap(this.width, this.height);
+            this.speed = DefaultSpeed;
+            this.tetromino = null;
 
 
+            // bgms
+            let bg1 = new Audio();
+            let bg2 = new Audio();
+            let bg3 = new Audio();
+
+            // sound effects
+            let lineClear = new Audio();
+            let move = new Audio();
+            let rotate = new Audio();
+
+            this.sounds = {bg1, bg2, bg3, line_cleared: lineClear, move, rotate}
+
+            bg1.src = "./../assets/bgm/bg1.mp3";
+            bg1.loop = true;
+            bg2.src = "./../assets/bgm/bg2.mp3";
+            bg2.loop = true;
+            bg3.src = "./../assets/bgm/bg3.mp3";
+            bg3.loop = true;
+            lineClear.src = "./../assets/sound/lineClear.mp3";
+            move.src = "./../assets/sound/move.mp3";
+            rotate.src = "./../assets/sound/rotate.mp3";
+
+            const body = document.querySelector('body');
+
+            body.appendChild(bg1);
+            body.appendChild(bg2);
+            body.appendChild(bg3);
+            body.appendChild(lineClear);
+            body.appendChild(move);
+            body.appendChild(rotate);
+
+            const t = Math.floor(Math.random() * 10000 % 3);
+            switch(t){
+                case 0:
+                bg1.play()
+                break;
+                case 1:
+                bg2.play()
+                break;
+                case 2:
+                bg3.play()
+                break;
+            }
+        }// end of constructor
+
+        render(ctx: CanvasRenderingContext2D){
+            // render method
+            ctx.fillStyle = bg_color;
+            ctx.fillRect(0, 0, this.width, this.height);
+            
+            // console.log(this.map)
+            this.map.foreach((x: number, y: number, t: Tetromino_types) => {
+                switch (t){
+                    case Tetromino_types.I:
+                    ctx.fillStyle = I_color;
+                    break;
+                    case Tetromino_types.J:
+                    ctx.fillStyle = J_color;
+                    break;
+                    case Tetromino_types.L:
+                    ctx.fillStyle = L_color;
+                    break;
+                    case Tetromino_types.O:
+                    ctx.fillStyle = O_color;
+                    break;
+                    case Tetromino_types.Z:
+                    ctx.fillStyle = Z_color;
+                    break;
+                    case Tetromino_types.S:
+                    ctx.fillStyle = S_color;
+                    break;
+                    case Tetromino_types.T:
+                    ctx.fillStyle = T_color;
+                    break;
+                    default:
+                    return;
+                }
+                ctx.fillRect(x * Unit, y * Unit, Unit, Unit);
+            });
+        }// end of render
+
+        run(){
+            //handle game process
+    
+            // test!
+            // let a = new Tetromino_I(1,3);
+            // let b = new Tetromino_J(4,3);
+            // b.state = Tetromino_states.Dead;
+            // let c = new Tetromino_L(6,3);
+            // c.state = Tetromino_states.Dead;
+            // let d = new Tetromino_O(0,8);
+            // d.state = Tetromino_states.Dead;
+            // let e = new Tetromino_S(3,8);
+            // e.state = Tetromino_states.Dead;
+            // let f = new Tetromino_T(7,8);
+            // f.state = Tetromino_states.Dead;
+            // let g = new Tetromino_Z(4,12);
+            // g.state = Tetromino_states.Dead;
+            // end of test
+
+            const self = this;
+    
+            document.onkeydown = function(ev) {
+                switch(ev.key){
+                    case Key.KeyHome:
+                    break;
+                    case Key.keyEnd:
+                    break;
+                    case Key.KeyUp:
+                    if(self.tetromino.rotate()){
+                        self.sounds.rotate.play();
+                    }
+                    break;
+                    case Key.KeyDown:
+                    if(self.speed !== Fast_Move_Speed){
+                        self.speed = Fast_Move_Speed;
+                        clearTimeout(self.process_id);
+                        self.process_id = setTimeout(self.process.bind(self), self.speed);
+                    }
+                    break;
+                    case Key.keyLeft:
+                    if(self.tetromino.move(Direction.LEFT)){
+                        self.sounds.move.play();
+                    }
+                    break;
+                    case Key.KeyRight:
+                    if(self.tetromino.move(Direction.RIGHT)){
+                        self.sounds.move.play();
+                    }
+                    break;
+                }
+            }
+    
+            document.onkeyup = function(ev){
+                switch(ev.key){
+                    case Key.KeyDown:
+                    self.speed = DefaultSpeed;
+                    clearTimeout(self.process_id);
+                    self.process_id = setTimeout(self.process.bind(self), self.speed);
+                    break;
+                }
+            }
+
+            self.process_id = setTimeout(this.process.bind(this), self.speed);
+        }// end function run
+
+        process(){
+            const self = this;
+            // console.log(self.tetromino)
+            // if(self.tetromino !== null) console.log(self.tetromino.state === Tetromino_states.Alive ? "Alive": "dead")  //test pass!
+            
+            if(self.tetromino === null || self.tetromino.state === Tetromino_states.Dead){
+                const t = Math.floor(Math.random() * 10000 % 7);
+                switch(t){
+                    case 0:
+                    self.tetromino = new Tetromino_I(4, 1, self.map);
+                    break;
+                    case 1:
+                    self.tetromino = new Tetromino_J(4, 1, self.map);
+                    break;
+                    case 2:
+                    self.tetromino = new Tetromino_L(4, 1, self.map);
+                    break;
+                    case 3:
+                    self.tetromino = new Tetromino_O(4, 1, self.map);
+                    break;
+                    case 4:
+                    self.tetromino = new Tetromino_Z(4, 1, self.map);
+                    break;
+                    case 5:
+                    self.tetromino = new Tetromino_S(4, 1, self.map);
+                    break;
+                    case 6:
+                    self.tetromino = new Tetromino_T(4, 1, self.map);
+                    break;
+                }
+                
+            }
+            
+            self.tetromino.move(Direction.DOWN);
+            if(self.tetromino.state === Tetromino_states.Dead){
+                if(self.map.handle_remove_rows()){
+                    self.score ++;
+                    self.sounds.line_cleared.play();
+                    console.log('played')
+                }
+            }
+
+            
+            self.process_id = setTimeout(this.process.bind(this), self.speed);
+            console.count("process!");
+        }
+    }
 
     class Point{
         private _x;
@@ -72,10 +292,10 @@ namespace Tetris{
         width: number;
         length: number;
 
-        constructor(){
+        constructor(width: number, height: number){
             this.data = [];
-            this.width = Width / Unit;
-            this.length = Height / Unit
+            this.width = width / Unit;
+            this.length = height / Unit
             this.empty();
         }
 
@@ -93,18 +313,21 @@ namespace Tetris{
             this.data[y][x] = t;
         }
 
-        // must call before move or rotate! [may be put this in shape class is better]
-        // clearLast() {
-        //     while(true){
-        //         const p = this.last.pop()
-        //         if (p!==undefined){
-        //             this.set(p.realX, p.realY, Block_types.Blank, Tetromino_states.Dead);
-        //         }
-        //         else{
-        //             break;
-        //         }
-        //     }
-        // }
+        get(x: number, y: number): Tetromino_types|never{
+            if(x < this.width && x >= 0 && y < this.length && y >=0){
+                return this.data[y][x];
+            }
+            else{
+                throw new Error("#101: x or y out of range!");
+            }
+        }
+
+        valid(p: Point){
+            if(p.realX < this.width && p.realX >= 0 && p.realY < this.length && p.realY >=0){
+                return true;
+            }
+            else return false;
+        }
 
         private in_a_row(){
             // determines if scored
@@ -123,12 +346,9 @@ namespace Tetris{
             return ys;
         }// end of in_a_row
 
-        handle_remove_rows(){
-            const ys = this.in_a_row()
-            if (ys.length === 0){
-                return;
-            }
-            else{
+        handle_remove_rows(): number {
+            const ys = this.in_a_row();
+            if (ys.length !== 0){
                 // handle it
                 ys.forEach((y: number)=> {
                     for(let x = 0; x < Width; x++){
@@ -141,6 +361,7 @@ namespace Tetris{
                     }
                 });
             }
+            return ys.length;
         }
 
 
@@ -154,17 +375,27 @@ namespace Tetris{
             }
         }
     }
-
-    const game_map: UMap = new UMap();
     
-    
-    abstract class Shape{
+    abstract class Tetromino{
         readonly type: Tetromino_types;
+        map: UMap;
         key: Point = new Point(4, 1);
-        dir: Direction;
+        dir: Direction = Direction.UP;
         state: Tetromino_states = Tetromino_states.Alive;
-        abstract body(key?: Point);
+        abstract body(key?: Point, dir?: Direction): Point[];
+
+        constructor(x: number, y: number, map: UMap){
+            this.key = new Point(x, y);
+            this.map = map;
+            // console.log(this.key, this.map);
+            if(!this.can_put(this.key)){
+                throw Error("Wrong tetromino position");
+            }
+            this.setPos(this.key);
+        }
+
         private put_to_map(map: UMap) {
+            // console.log(this.body())
             this.body().forEach((p: Point) => {
                 map.set(p.realX, p.realY, this.type);
             });
@@ -178,26 +409,127 @@ namespace Tetris{
 
         protected setDir(dir: Direction) {
             if(this.state === Tetromino_states.Alive){
-                this.clear_on_map(game_map);
+                this.clear_on_map(this.map);
             }
             this.dir = dir;
-            this.put_to_map(game_map);
+            this.put_to_map(this.map);
         }
 
         protected setPos(p: Point) {
             if(this.state === Tetromino_states.Alive){
-                this.clear_on_map(game_map);
+                this.clear_on_map(this.map);
             }
             this.key = p;
-            this.put_to_map(game_map);
+            this.put_to_map(this.map);
         }
 
-        move(){
-
+        can_put(key: Point = this.key, dir: Direction = this.dir): boolean{
+            // console.log(dir);
+            // console.log("body ::: " + this.body(key, dir))
+            let count = 0;
+            this.body(key, dir).forEach((p) => {
+                if(!this.map.valid(p) || this.map.get(p.realX, p.realY) !== Tetromino_types.Blank){
+                    for(let item of this.body()){
+                        if(item.realX === p.realX && item.realY === p.realY){   // except itself!
+                            return;
+                        }
+                    }
+                    count ++;
+                }
+            });
+            if(count === 0)
+                return true;
+            else
+                return false;
         }
 
-        rotate(){
+        to_be_death(key: Point){
+            if(
+                (!this.map.valid(key) && key.realX >= 0 && key.realX < this.map.width) ||  // already reach bottom
+                (!this.can_put(key, undefined) && this.map.valid(key))                      // already on top of Tetromino
+            ){
+                return true;
+            }
+            else
+                return false;
+        }
 
+        move(dir: Direction.LEFT|Direction.RIGHT|Direction.DOWN): boolean{
+            if(this.state !== Tetromino_states.Dead){
+                let newp;
+                switch(dir){
+                    case Direction.LEFT: 
+                        newp = new Point(this.key.realX - 1, this.key.realY)
+                        break;
+                    case Direction.RIGHT:
+                        newp = new Point(this.key.realX + 1, this.key.realY)
+                        break;
+                    case Direction.DOWN:
+                        newp = new Point(this.key.realX, this.key.realY + 1)
+                        break;
+                }
+
+                if(dir !== Direction.DOWN){
+                    if(this.can_put(newp, undefined)){
+                        this.setPos(newp);
+                        return true;
+                    }
+                    else{
+                        return false;
+                    }
+                }
+                else{
+                    if(this.can_put(newp, undefined)){
+                        this.setPos(newp);
+                        return true;
+                    }
+                    else if(this.to_be_death(newp)){
+                        this.state = Tetromino_states.Dead;
+                        return false;
+                    }
+                }
+                // console.log(this.can_put(newp, undefined), this.state)
+            }
+        }
+
+        rotate(): boolean{
+            if(this.state !== Tetromino_states.Dead){
+                let newd;
+                switch(this.dir){
+                    case Direction.UP:
+                    newd = Direction.RIGHT;
+                    if(this.can_put(undefined, newd)){
+                        this.setDir(newd);
+                        return true;
+                    }
+                    return false;
+                    break;
+                    case Direction.RIGHT:
+                    newd = Direction.DOWN;
+                    if(this.can_put(undefined, newd)){
+                        this.setDir(newd);
+                        return true;
+                    }
+                    return false;
+                    break;
+                    case Direction.DOWN:
+                    newd = Direction.LEFT;
+                    if(this.can_put(undefined, newd)){
+                        this.setDir(newd);
+                        return true;
+                    }
+                    return false;
+                    break;
+                    case Direction.LEFT:
+                    newd = Direction.UP
+                    if(this.can_put(undefined, newd)){
+                        this.setDir(newd);
+                        return true;
+                    }
+                    return false;
+                    break;
+                }
+            }
         }
 
         predict(){
@@ -214,18 +546,15 @@ namespace Tetris{
 
 
     //  ---- shape
-    class Shape_I extends Shape{
+    class Tetromino_I extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.I;
-        key: Point;
-        dir: Direction.UP|Direction.RIGHT = Direction.UP;
 
-        constructor(x: number, y: number){
-            super();
-            this.setPos(new Point(x, y));
+        constructor(x: number, y: number, map: UMap){
+            super(x, y , map);
         }
 
-        body(key = this.key){
-            switch (this.dir){
+        body(key = this.key, dir = this.dir){
+            switch (dir){
                 case Direction.UP: 
                     return [
                         new Point(key.realX, key.realY - 1),
@@ -244,21 +573,39 @@ namespace Tetris{
                     break;
             }
         }
+
+        rotate(): boolean{
+            let newd;
+            switch(this.dir){
+                case Direction.UP:
+                newd = Direction.RIGHT;
+                if(this.can_put(undefined, newd)){
+                    this.setDir(newd);
+                    return true;
+                }
+                break;
+                case Direction.RIGHT:
+                newd = Direction.UP;
+                if(this.can_put(undefined, newd)){
+                    this.setDir(newd);
+                    return true;
+                }
+                break;
+            }
+            return false;
+        }
     }// end of class Shape_I
 
     // |___ shape
-    class Shape_J extends Shape{
+    class Tetromino_J extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.J;
-        key: Point;        
-        dir: Direction = Direction.UP;
  
-        constructor(x: number, y: number){
-            super();
-            this.setPos(new Point(x, y));
+        constructor(x: number, y: number, map: UMap){
+            super(x, y, map);
         }
 
-        body(key = this.key){
-            switch(this.dir){
+        body(key = this.key, dir = this.dir){
+            switch(dir){
                 case Direction.UP:
                 // J
                 return [
@@ -300,18 +647,15 @@ namespace Tetris{
     }// end of class Shape_J
 
     // ___| shape
-    class Shape_L extends Shape{
+    class Tetromino_L extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.L;
-        key: Point;     
-        dir: Direction = Direction.UP;
  
-        constructor(x: number, y: number){
-            super()
-            this.setPos(new Point(x, y));
+        constructor(x: number, y: number, map: UMap){
+            super(x, y, map);
         } 
 
-        body(key = this.key){
-            switch(this.dir){
+        body(key = this.key, dir = this.dir){
+            switch(dir){
                 case Direction.UP:
                 // L
                 return [
@@ -353,17 +697,14 @@ namespace Tetris{
     }// end of class Shape_L
 
     // # shape 
-    class Shape_O extends Shape{
+    class Tetromino_O extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.O;
-        key: Point;        
-        dir: Direction = Direction.UP;
  
-        constructor(x: number, y: number){
-            super();
-            this.setPos(new Point(x, y));
-        }
+        constructor(x: number, y: number, map: UMap){
+            super(x, y, map)
+        } 
 
-        body(key = this.key){
+        body(key = this.key, dir = this.dir){
             return [
                 new Point(key.realX, key.realY),
                 new Point(key.realX + 1, key.realY),
@@ -371,22 +712,21 @@ namespace Tetris{
                 new Point(key.realX + 1, key.realY + 1),
             ];
         }
+
+        rotate(){ return false; }
     }// end of class Shape_O
 
     // |_
     //   |  shape
-    class Shape_S extends Shape{
+    class Tetromino_S extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.S;
-        key: Point;        
-        dir: Direction.UP|Direction.RIGHT = Direction.UP;
  
-        constructor(x: number, y: number){
-            super();
-            this.setPos(new Point(x, y));
-        }
+        constructor(x: number, y: number, map: UMap){
+            super(x, y, map)
+        } 
 
-        body(key = this.key){
-            switch(this.dir){
+        body(key = this.key, dir = this.dir){
+            switch(dir){
                 case Direction.UP:
                 return [
                     new Point(key.realX, key.realY - 1),
@@ -405,23 +745,43 @@ namespace Tetris{
                 break;
             }
         }// end of get body()
+
+        rotate(): boolean{
+            let newd;
+            switch(this.dir){
+                case Direction.UP:
+                newd = Direction.RIGHT;
+                if(this.can_put(undefined, newd)){
+                    this.setDir(newd);
+                    return true;
+                }
+                break;
+                case Direction.RIGHT:
+                newd = Direction.UP;
+                if(this.can_put(undefined, newd)){
+                    this.setDir(newd);
+                    return true;
+                }
+                break;
+            }
+            return false;
+        }
     }// end of class Shape_S
 
     // __
     //  /    shape
     // /__
-    class Shape_Z extends Shape{
+    class Tetromino_Z extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.Z;
         key: Point;        
         dir: Direction = Direction.UP;
  
-        constructor(x: number, y: number){
-            super();
-            this.setPos(new Point(x, y));
-        }
+        constructor(x: number, y: number, map: UMap){
+            super(x, y, map)
+        } 
 
-        body(key = this.key){
-            switch(this.dir){
+        body(key = this.key, dir = this.dir){
+            switch(dir){
                 case Direction.UP:
                 return [
                     new Point(key.realX, key.realY - 1),
@@ -440,22 +800,40 @@ namespace Tetris{
                 break;
             }
         }
+
+        rotate(): boolean{
+            let newd;
+            switch(this.dir){
+                case Direction.UP:
+                newd = Direction.RIGHT;
+                if(this.can_put(undefined, newd)){
+                    this.setDir(newd);
+                    return true;
+                }
+                break;
+                case Direction.RIGHT:
+                newd = Direction.UP;
+                if(this.can_put(undefined, newd)){
+                    this.setDir(newd);
+                    return true;
+                }
+                break;
+            }
+            return false;
+        }
     }// end of class Shape_Z
 
     //___ 
     // |   shape
-    class Shape_T extends Shape{
+    class Tetromino_T extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.T;
-        key: Point;        
-        dir: Direction = Direction.UP;
  
-        constructor(x: number, y: number){
-            super();
-            this.setPos(new Point(x, y));
-        }
+        constructor(x: number, y: number, map: UMap){
+            super(x, y, map)
+        } 
 
-        body(key = this.key){
-            switch(this.dir){
+        body(key = this.key, dir = this.dir){
+            switch(dir){
                 case Direction.UP:
                 return [
                     new Point(key.realX - 1, key.realY),
@@ -493,73 +871,24 @@ namespace Tetris{
     }
 
     
-    export function run(){
-        //handle game process
-
-        // test!
-        let a = new Shape_I(1,3);
-        a.rotate()
-        let b = new Shape_J(4,3);
-        b.state = Tetromino_states.Dead;
-        let c = new Shape_L(6,3);
-        c.state = Tetromino_states.Dead;
-        let d = new Shape_O(0,8);
-        d.state = Tetromino_states.Dead;
-        let e = new Shape_S(3,8);
-        e.state = Tetromino_states.Dead;
-        let f = new Shape_T(7,8);
-        f.state = Tetromino_states.Dead;
-        let g = new Shape_Z(4,12);
-        g.state = Tetromino_states.Dead;
-        // end of test
-
-    }// end function run
-
-
-    export function render(ctx: CanvasRenderingContext2D){
-        // render method
-        ctx.fillStyle = bg_color;
-        ctx.fillRect(0, 0, Width, Height);
-        
-        console.log(game_map)
-        game_map.foreach((x: number, y: number, t: Tetromino_types) => {
-            switch (t){
-                case Tetromino_types.I:
-                ctx.fillStyle = I_color;
-                break;
-                case Tetromino_types.J:
-                ctx.fillStyle = J_color;
-                break;
-                case Tetromino_types.L:
-                ctx.fillStyle = L_color;
-                break;
-                case Tetromino_types.O:
-                ctx.fillStyle = O_color;
-                break;
-                case Tetromino_types.Z:
-                ctx.fillStyle = Z_color;
-                break;
-                case Tetromino_types.S:
-                ctx.fillStyle = S_color;
-                break;
-                case Tetromino_types.T:
-                ctx.fillStyle = T_color;
-                break;
-                default:
-                return;
-            }
-            ctx.fillRect(x * Unit, y * Unit, Unit, Unit);
-        });
+    enum Key{
+        KeyUp = "ArrowUp",
+        KeyRight = "ArrowRight",
+        KeyDown = "ArrowDown",
+        keyLeft = "ArrowLeft",
+        keyEnd = "End",
+        KeyHome = "Home"
     }
 }
 
 
 function main(){
     const canvas = window.document.querySelector('canvas');
+    const game = new Tetris.Game()
     if(canvas !== null){
         // init canvas size
-        canvas.width = Tetris.Width;
-        canvas.height = Tetris.Height;
+        canvas.width = game.width;
+        canvas.height = game.height;
 
         // get canvas 2d context
         const ctx = canvas.getContext('2d');
@@ -569,16 +898,8 @@ function main(){
         }
 
         // render block
-        let last_frame = null;
         const render = (t) => {
-            if (!last_frame) last_frame = t;
-
-            const time = t - last_frame;
-            if (time > 1000){
-                Tetris.render(ctx);
-                last_frame = t;
-            }
-            
+            game.render(ctx);
             window.requestAnimationFrame(render)
         }   
         window.requestAnimationFrame(render);
@@ -586,7 +907,7 @@ function main(){
 
         // context has been got, let's start doing sth
         //ctx.clearRect(0, 0, Tetris.Width, Tetris.Height);
-        Tetris.run();
+        game.run();
     } // end if
     else{
         console.error('canvas not found!');
