@@ -1,4 +1,4 @@
-namespace Tetris{
+export namespace Tetris{
     const Unit = 45;
     const Width = 10;
     const Height = 20;
@@ -14,7 +14,7 @@ namespace Tetris{
     const Z_color = '#A8BEF7';
     const T_color = '#EEFF7F';
 
-    const bg_color = 'rgb(222,222,222)';
+    export const bg_color = 'rgb(222,222,222)';
 
     console.log("Design & Written By CG, forward code & republish Please write clearly original author!");
     console.log("Press Home button to start & pause the game, End button to stop the game.");
@@ -24,6 +24,8 @@ namespace Tetris{
         Stopped,
         Paused,
     }
+    type OnNextChangeListenerCallback = (old: Tetromino, newer: Tetromino) => void;
+    type OnScoreChangeListenerCallback = (old: number, newer: number) => void;
 
     export class Game{
         readonly canvas: HTMLCanvasElement;
@@ -37,16 +39,48 @@ namespace Tetris{
 
         canvas_2d_context: CanvasRenderingContext2D;
         tetromino: Tetromino;
-        score: number;
         speed: number;
         process_id: number;
         width: number;
         height: number;
-        private unit: number;
+        unit: number;
+
+        current_bgm: HTMLAudioElement;
 
         state: Game_state;
+        sf: boolean = true;
 
-        next: Tetromino;
+        // next with observe
+        private _next: Tetromino;
+        set next(next: Tetromino){
+            this.onNextChangeLiseners.forEach((c) => {
+                c(this._next, next);
+            });
+            this._next = next;
+        }
+        get next(): Tetromino{
+            return this._next;
+        }
+        private onNextChangeLiseners: OnNextChangeListenerCallback[] = [];
+        setOnNextChangeListener(callback: OnNextChangeListenerCallback){
+            this.onNextChangeLiseners.push(callback);
+        }
+
+        // score with observe
+        private _score: number;
+        set score(next: number){
+            this.onScoreChangeLiseners.forEach((c) => {
+                c(this._score, next);
+            });
+            this._score = next;
+        }
+        get score(): number{
+            return this._score;
+        }
+        private onScoreChangeLiseners: OnScoreChangeListenerCallback[] = [];
+        setOnScoreChangeLisener(callback: OnScoreChangeListenerCallback){
+            this.onScoreChangeLiseners.push(callback);
+        }
 
         private init(){
             this.score = 0;
@@ -56,7 +90,8 @@ namespace Tetris{
             this.speed = DefaultSpeed;
 
             const t = Math.floor(Math.random() * 10000 % 3);
-            this.sounds.bgm[t].play();
+            this.current_bgm = this.sounds.bgm[t];
+            this.current_bgm.play();
             this.state = Game_state.Stopped;
         }
 
@@ -65,22 +100,22 @@ namespace Tetris{
             this.width = this.width / this.unit * unit;
             this.height = this.height / this.unit * unit
             this.unit = unit;
-            this.canvas.width = this.width;
-            this.canvas.height = this.height;
+            this.canvas.setAttribute('width', this.width+'');
+            this.canvas.setAttribute('height', this.height+'');
         }
 
         resize(width: number, height: number){
             this.width = width * this.unit;
             this.height = height * this.unit;
-            this.canvas.width = this.width;
-            this.canvas.height = this.height;
+            this.canvas.setAttribute('width', this.width+'');
+            this.canvas.setAttribute('height', this.height+'');
         }
 
         constructor(width: number = Width, height: number = Height, unit: number = Unit, canvas: HTMLCanvasElement){
             this.width = width * unit;
             this.height = height * unit;
             this.unit = unit;
-            this.map = new UMap(this.width, this.height);
+            this.map = new UMap(this.width, this.height, unit);
             this.canvas = canvas;
 
 
@@ -159,32 +194,9 @@ namespace Tetris{
 
             // predict 
             if (this.tetromino !== null){
-                this.tetromino.predict().forEach((p) => {
-                    switch (this.tetromino.type){
-                        case Tetromino_types.I:
-                        ctx.strokeStyle = I_color;
-                        break;
-                        case Tetromino_types.J:
-                        ctx.strokeStyle = J_color;
-                        break;
-                        case Tetromino_types.L:
-                        ctx.strokeStyle = L_color;
-                        break;
-                        case Tetromino_types.O:
-                        ctx.strokeStyle = O_color;
-                        break;
-                        case Tetromino_types.Z:
-                        ctx.strokeStyle = Z_color;
-                        break;
-                        case Tetromino_types.S:
-                        ctx.strokeStyle = S_color;
-                        break;
-                        case Tetromino_types.T:
-                        ctx.strokeStyle = T_color;
-                        break;
-                        default:
-                        return;
-                    }
+                const tetromino: Tetromino = this.tetromino.predict();
+                tetromino.body().forEach((p) => {
+                    ctx.strokeStyle = tetromino.color;
                     ctx.strokeRect(p.x, p.y, self.unit, self.unit);
                 });// end of foreach
             }// end of if
@@ -214,7 +226,7 @@ namespace Tetris{
             const self = this;
     
             document.onkeydown = function(ev) {
-                switch(ev.key){
+                switch(ev.keyCode){
                     case Key.KeyHome:
                     if(self.state !== Game_state.Started){
                         self.state = Game_state.Started;
@@ -232,7 +244,7 @@ namespace Tetris{
                     break;
                     case Key.KeyUp:
                     if(self.state === Game_state.Started && self.tetromino.rotate()){
-                        self.sounds.rotate.play();
+                        if(self.sf)self.sounds.rotate.play();
                     }
                     break;
                     case Key.KeyDown:
@@ -244,19 +256,19 @@ namespace Tetris{
                     break;
                     case Key.keyLeft:
                     if(self.state === Game_state.Started && self.tetromino.move(Direction.LEFT)){
-                        self.sounds.move.play();
+                        if(self.sf)self.sounds.move.play();
                     }
                     break;
                     case Key.KeyRight:
                     if(self.state === Game_state.Started && self.tetromino.move(Direction.RIGHT)){
-                        self.sounds.move.play();
+                        if(self.sf)self.sounds.move.play();
                     }
                     break;
                 }
             }
     
             document.onkeyup = function(ev){
-                switch(ev.key){
+                switch(ev.keyCode){
                     case Key.KeyDown:
                     self.speed = DefaultSpeed;
                     clearTimeout(self.process_id);
@@ -268,8 +280,8 @@ namespace Tetris{
             self.process_id = setTimeout(this.process.bind(this), self.speed);
 
             // init canvas size
-            self.canvas.width = game.width;
-            self.canvas.height = game.height;
+            self.canvas.width = self.width;
+            self.canvas.height = self.height;
 
             // get canvas 2d context
             self.canvas_2d_context = self.canvas.getContext('2d');
@@ -285,25 +297,25 @@ namespace Tetris{
             const t = Math.floor(Math.random() * 10000 % 7);
             switch(t){
                 case 0:
-                return new Tetromino_I(4, Init_Y, self.map);
+                return new Tetromino_I(4, Init_Y, self.unit, self.map);
                 break;
                 case 1:
-                return new Tetromino_J(4, Init_Y, self.map);
+                return new Tetromino_J(4, Init_Y, this.unit, self.map);
                 break;
                 case 2:
-                return new Tetromino_L(4, Init_Y, self.map);
+                return new Tetromino_L(4, Init_Y, this.unit, self.map);
                 break;
                 case 3:
-                return new Tetromino_O(4, Init_Y, self.map);
+                return new Tetromino_O(4, Init_Y, this.unit, self.map);
                 break;
                 case 4:
-                return new Tetromino_Z(4, Init_Y, self.map);
+                return new Tetromino_Z(4, Init_Y, this.unit, self.map);
                 break;
                 case 5:
-                return new Tetromino_S(4, Init_Y, self.map);
+                return new Tetromino_S(4, Init_Y, this.unit, self.map);
                 break;
                 case 6:
-                return new Tetromino_T(4, Init_Y, self.map);
+                return new Tetromino_T(4, Init_Y, this.unit, self.map);
                 break;
             }// end of switch
         }
@@ -388,6 +400,7 @@ namespace Tetris{
                             default:
                             throw Error('Unusual line clear!');
                         }
+                        if(this.sf)
                         self.sounds.line_cleared.play();
                         console.log('Score： ' + self.score);
                     }
@@ -398,17 +411,19 @@ namespace Tetris{
         }
     }
 
-    class Point{
+    export class Point{
         private _x;
         private _y;
+        readonly unit;
 
-        constructor(x: number, y:number){
+        constructor(x: number, y:number, unit: number){
             this.x = x;
             this.y = y;
+            this.unit = unit;
         }
         
         public get x() : number {
-            return this._x * Unit;
+            return this._x * this.unit;
         }
 
         public get realX() : number {
@@ -420,7 +435,7 @@ namespace Tetris{
         }
         
         public get y() : number {
-            return this._y * Unit;
+            return this._y * this.unit;
         }
         
         public get realY() : number {
@@ -433,7 +448,7 @@ namespace Tetris{
     }// end class Point
 
 
-    enum Tetromino_types{
+    export enum Tetromino_types{
         Blank,
         I,
         J,
@@ -449,15 +464,15 @@ namespace Tetris{
         Dead,
     }
 
-    class UMap{
+    export class UMap{
         private data: Tetromino_types[][];
         width: number;
         length: number;
 
-        constructor(width: number, height: number){
+        constructor(width: number, height: number, unit: number){
             this.data = [];
-            this.width = width / Unit;
-            this.length = height / Unit
+            this.width = width / unit;
+            this.length = height / unit;
             this.empty();
         }
 
@@ -542,16 +557,20 @@ namespace Tetris{
         }
     }
     
-    abstract class Tetromino{
+    export abstract class Tetromino{
         readonly type: Tetromino_types;
+        readonly color: string;
+
+        unit: number;
         map: UMap;
-        key: Point = new Point(4, 1);
+        key: Point;
         dir: Direction = Direction.UP;
         state: Tetromino_states = Tetromino_states.Alive;
         abstract body(key?: Point, dir?: Direction): Point[];
 
-        constructor(x: number, y: number, map: UMap){
-            this.key = new Point(x, y);
+        constructor(x: number, y: number, unit: number, map: UMap){
+            this.unit = unit;
+            this.key = new Point(x, y, unit);
             this.map = map;
             // console.log(this.key, this.map);
             if(!this.can_put(this.key)){
@@ -577,6 +596,10 @@ namespace Tetris{
         protected setDir(dir: Direction) {
             this.clear_on_map(this.map);
             this.dir = dir;
+            this.put_to_map(this.map);
+        }
+
+        draw(){
             this.put_to_map(this.map);
         }
 
@@ -622,13 +645,13 @@ namespace Tetris{
                 let newp;
                 switch(dir){
                     case Direction.LEFT: 
-                        newp = new Point(this.key.realX - 1, this.key.realY)
+                        newp = new Point(this.key.realX - 1, this.key.realY, this.unit)
                         break;
                     case Direction.RIGHT:
-                        newp = new Point(this.key.realX + 1, this.key.realY)
+                        newp = new Point(this.key.realX + 1, this.key.realY, this.unit)
                         break;
                     case Direction.DOWN:
-                        newp = new Point(this.key.realX, this.key.realY + 1)
+                        newp = new Point(this.key.realX, this.key.realY + 1, this.unit)
                         break;
                 }
 
@@ -695,11 +718,36 @@ namespace Tetris{
             }
         }
 
-        predict(): Point[]{
+        predict(): Tetromino{
             let delta = 0;
-            while(this.can_put(new Point(this.key.realX, this.key.realY + delta), undefined)) delta++;
-            return this.body(new Point(this.key.realX, this.key.realY + delta - 1));
-        }
+            let t;
+            while(this.can_put(new Point(this.key.realX, this.key.realY + delta, this.unit), undefined)) delta++;
+            switch(this.type){
+                case Tetromino_types.I:
+                t = new Tetromino_I(this.key.realX, this.key.realY + delta - 1, this.unit, this.map);
+                break;
+                case Tetromino_types.J:
+                t =  new Tetromino_J(this.key.realX, this.key.realY + delta - 1, this.unit, this.map);
+                break;
+                case Tetromino_types.L:
+                t =  new Tetromino_L(this.key.realX, this.key.realY + delta - 1, this.unit, this.map);
+                break;
+                case Tetromino_types.O:
+                t =  new Tetromino_O(this.key.realX, this.key.realY + delta - 1, this.unit, this.map);
+                break;
+                case Tetromino_types.S:
+                t =  new Tetromino_S(this.key.realX, this.key.realY + delta - 1, this.unit, this.map);
+                break;
+                case Tetromino_types.Z:
+                t =  new Tetromino_Z(this.key.realX, this.key.realY + delta - 1, this.unit, this.map);
+                break;
+                case Tetromino_types.T:
+                t =  new Tetromino_T(this.key.realX, this.key.realY + delta - 1, this.unit, this.map);
+                break;
+            }
+            t.dir = this.dir;
+            return t;
+        }// end of predict
     }// end of interface Shape
 
     enum Direction{
@@ -711,29 +759,30 @@ namespace Tetris{
 
 
     //  ---- shape
-    class Tetromino_I extends Tetromino{
+    export class Tetromino_I extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.I;
+        readonly color: string = I_color;
 
-        constructor(x: number, y: number, map: UMap){
-            super(x, y , map);
-        }
+        constructor(x: number, y: number, unit: number, map: UMap){
+            super(x, y, unit, map);
+        } 
 
         body(key = this.key, dir = this.dir){
             switch (dir){
                 case Direction.UP: 
                     return [
-                        new Point(key.realX, key.realY - 1),
-                        new Point(key.realX, key.realY),
-                        new Point(key.realX, key.realY + 1),
-                        new Point(key.realX, key.realY + 2),
+                        new Point(key.realX, key.realY - 1, this.unit),
+                        new Point(key.realX, key.realY, this.unit),
+                        new Point(key.realX, key.realY + 1, this.unit),
+                        new Point(key.realX, key.realY + 2, this.unit),
                     ]
                     break;
                 case Direction.RIGHT:
                     return [
-                        new Point(key.realX - 1, key.realY),
-                        new Point(key.realX, key.realY),
-                        new Point(key.realX + 1, key.realY),
-                        new Point(key.realX + 2, key.realY),
+                        new Point(key.realX - 1, key.realY, this.unit),
+                        new Point(key.realX, key.realY, this.unit),
+                        new Point(key.realX + 1, key.realY, this.unit),
+                        new Point(key.realX + 2, key.realY, this.unit),
                     ]
                     break;
             }
@@ -762,11 +811,12 @@ namespace Tetris{
     }// end of class Shape_I
 
     // |___ shape
-    class Tetromino_J extends Tetromino{
+    export class Tetromino_J extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.J;
+        readonly color: string = J_color;
  
-        constructor(x: number, y: number, map: UMap){
-            super(x, y, map);
+        constructor(x: number, y: number, unit: number, map: UMap){
+            super(x, y, unit, map);
         }
 
         body(key = this.key, dir = this.dir){
@@ -774,37 +824,37 @@ namespace Tetris{
                 case Direction.UP:
                 // J
                 return [
-                    new Point(key.realX, key.realY - 1),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX, key.realY + 1),
-                    new Point(key.realX - 1, key.realY + 1),
+                    new Point(key.realX, key.realY - 1, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX, key.realY + 1, this.unit),
+                    new Point(key.realX - 1, key.realY + 1, this.unit),
                 ]
                 break;
                 case Direction.RIGHT:
                 // |___
                 return [
-                    new Point(key.realX + 1, key.realY),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX - 1, key.realY),
-                    new Point(key.realX - 1, key.realY - 1),
+                    new Point(key.realX + 1, key.realY, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX - 1, key.realY, this.unit),
+                    new Point(key.realX - 1, key.realY - 1, this.unit),
                 ]
                 break;
                 case Direction.DOWN:
                 // ┌
                 return [
-                    new Point(key.realX, key.realY + 1),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX, key.realY - 1),
-                    new Point(key.realX + 1, key.realY - 1),
+                    new Point(key.realX, key.realY + 1, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX, key.realY - 1, this.unit),
+                    new Point(key.realX + 1, key.realY - 1, this.unit),
                 ]
                 break;
                 case Direction.LEFT:
                 // --┐
                 return [
-                    new Point(key.realX - 1, key.realY),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX + 1, key.realY),
-                    new Point(key.realX + 1, key.realY + 1),
+                    new Point(key.realX - 1, key.realY, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX + 1, key.realY, this.unit),
+                    new Point(key.realX + 1, key.realY + 1, this.unit),
                 ]
                 break;
             }// end of switch
@@ -812,11 +862,12 @@ namespace Tetris{
     }// end of class Shape_J
 
     // ___| shape
-    class Tetromino_L extends Tetromino{
+    export class Tetromino_L extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.L;
+        readonly color: string = L_color;
  
-        constructor(x: number, y: number, map: UMap){
-            super(x, y, map);
+        constructor(x: number, y: number, unit: number, map: UMap){
+            super(x, y, unit, map);
         } 
 
         body(key = this.key, dir = this.dir){
@@ -824,37 +875,37 @@ namespace Tetris{
                 case Direction.UP:
                 // L
                 return [
-                    new Point(key.realX, key.realY - 1),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX, key.realY + 1),
-                    new Point(key.realX + 1, key.realY + 1),
+                    new Point(key.realX, key.realY - 1, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX, key.realY + 1, this.unit),
+                    new Point(key.realX + 1, key.realY + 1, this.unit),
                 ]
                 break;
                 case Direction.RIGHT:
                 // ┌--
                 return [
-                    new Point(key.realX + 1, key.realY),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX - 1, key.realY),
-                    new Point(key.realX - 1, key.realY + 1),
+                    new Point(key.realX + 1, key.realY, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX - 1, key.realY, this.unit),
+                    new Point(key.realX - 1, key.realY + 1, this.unit),
                 ]
                 break;
                 case Direction.DOWN:
                 // ┐
                 return [
-                    new Point(key.realX, key.realY + 1),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX, key.realY - 1),
-                    new Point(key.realX - 1, key.realY - 1),
+                    new Point(key.realX, key.realY + 1, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX, key.realY - 1, this.unit),
+                    new Point(key.realX - 1, key.realY - 1, this.unit),
                 ]
                 break;
                 case Direction.LEFT:
                 // --┘
                 return [
-                    new Point(key.realX - 1, key.realY),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX + 1, key.realY),
-                    new Point(key.realX + 1, key.realY - 1),
+                    new Point(key.realX - 1, key.realY, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX + 1, key.realY, this.unit),
+                    new Point(key.realX + 1, key.realY - 1, this.unit),
                 ]
                 break;
             }// end of switch
@@ -862,19 +913,20 @@ namespace Tetris{
     }// end of class Shape_L
 
     // # shape 
-    class Tetromino_O extends Tetromino{
+    export class Tetromino_O extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.O;
+        readonly color: string = O_color;
  
-        constructor(x: number, y: number, map: UMap){
-            super(x, y, map);
+        constructor(x: number, y: number, unit: number, map: UMap){
+            super(x, y, unit, map);
         } 
 
         body(key = this.key, dir = this.dir){
             return [
-                new Point(key.realX, key.realY),
-                new Point(key.realX + 1, key.realY),
-                new Point(key.realX, key.realY + 1),
-                new Point(key.realX + 1, key.realY + 1),
+                new Point(key.realX, key.realY, this.unit),
+                new Point(key.realX + 1, key.realY, this.unit),
+                new Point(key.realX, key.realY + 1, this.unit),
+                new Point(key.realX + 1, key.realY + 1, this.unit),
             ];
         }
 
@@ -883,29 +935,30 @@ namespace Tetris{
 
     // |_
     //   |  shape
-    class Tetromino_S extends Tetromino{
+    export class Tetromino_S extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.S;
+        readonly color: string = S_color;
  
-        constructor(x: number, y: number, map: UMap){
-            super(x, y, map);
+        constructor(x: number, y: number, unit: number, map: UMap){
+            super(x, y, unit, map);
         } 
 
         body(key = this.key, dir = this.dir){
             switch(dir){
                 case Direction.UP:
                 return [
-                    new Point(key.realX, key.realY - 1),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX + 1, key.realY),
-                    new Point(key.realX + 1, key.realY + 1),
+                    new Point(key.realX, key.realY - 1, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX + 1, key.realY, this.unit),
+                    new Point(key.realX + 1, key.realY + 1, this.unit),
                 ]
                 break;
                 case Direction.RIGHT:
                 return [
-                    new Point(key.realX + 1, key.realY),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX, key.realY + 1),
-                    new Point(key.realX - 1, key.realY + 1),
+                    new Point(key.realX + 1, key.realY, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX, key.realY + 1, this.unit),
+                    new Point(key.realX - 1, key.realY + 1, this.unit),
                 ]
                 break;
             }
@@ -936,31 +989,33 @@ namespace Tetris{
     // __
     //  /    shape
     // /__
-    class Tetromino_Z extends Tetromino{
+    export class Tetromino_Z extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.Z;
+        readonly color: string = Z_color;
+        
         key: Point;        
         dir: Direction = Direction.UP;
  
-        constructor(x: number, y: number, map: UMap){
-            super(x, y, map);
+        constructor(x: number, y: number, unit: number, map: UMap){
+            super(x, y, unit, map);
         } 
 
         body(key = this.key, dir = this.dir){
             switch(dir){
                 case Direction.UP:
                 return [
-                    new Point(key.realX, key.realY - 1),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX - 1, key.realY),
-                    new Point(key.realX - 1, key.realY + 1),
+                    new Point(key.realX, key.realY - 1, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX - 1, key.realY, this.unit),
+                    new Point(key.realX - 1, key.realY + 1, this.unit),
                 ]
                 break;
                 case Direction.RIGHT:
                 return [
-                    new Point(key.realX + 1, key.realY),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX, key.realY - 1),
-                    new Point(key.realX - 1, key.realY - 1),
+                    new Point(key.realX + 1, key.realY, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX, key.realY - 1, this.unit),
+                    new Point(key.realX - 1, key.realY - 1, this.unit),
                 ]
                 break;
             }
@@ -990,45 +1045,46 @@ namespace Tetris{
 
     //___ 
     // |   shape
-    class Tetromino_T extends Tetromino{
+    export class Tetromino_T extends Tetromino{
         readonly type: Tetromino_types = Tetromino_types.T;
+        readonly color: string = T_color;
  
-        constructor(x: number, y: number, map: UMap){
-            super(x, y, map);
+        constructor(x: number, y: number, unit: number, map: UMap){
+            super(x, y, unit, map);
         } 
 
         body(key = this.key, dir = this.dir){
             switch(dir){
                 case Direction.UP:
                 return [
-                    new Point(key.realX - 1, key.realY),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX + 1, key.realY),
-                    new Point(key.realX, key.realY + 1),
+                    new Point(key.realX - 1, key.realY, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX + 1, key.realY, this.unit),
+                    new Point(key.realX, key.realY + 1, this.unit),
                 ]
                 break;
                 case Direction.RIGHT:
                 return [
-                    new Point(key.realX, key.realY - 1),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX, key.realY + 1),
-                    new Point(key.realX - 1, key.realY),
+                    new Point(key.realX, key.realY - 1, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX, key.realY + 1, this.unit),
+                    new Point(key.realX - 1, key.realY, this.unit),
                 ]
                 break;
                 case Direction.DOWN:
                 return [
-                    new Point(key.realX - 1, key.realY),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX + 1, key.realY),
-                    new Point(key.realX, key.realY - 1),
+                    new Point(key.realX - 1, key.realY, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX + 1, key.realY, this.unit),
+                    new Point(key.realX, key.realY - 1, this.unit),
                 ]
                 break;
                 case Direction.LEFT:
                 return [
-                    new Point(key.realX, key.realY - 1),
-                    new Point(key.realX, key.realY),
-                    new Point(key.realX, key.realY + 1),
-                    new Point(key.realX + 1, key.realY),
+                    new Point(key.realX, key.realY - 1, this.unit),
+                    new Point(key.realX, key.realY, this.unit),
+                    new Point(key.realX, key.realY + 1, this.unit),
+                    new Point(key.realX + 1, key.realY, this.unit),
                 ]
                 break;
             }
@@ -1036,21 +1092,12 @@ namespace Tetris{
     }
 
     
-    enum Key{
-        KeyUp = "ArrowUp",
-        KeyRight = "ArrowRight",
-        KeyDown = "ArrowDown",
-        keyLeft = "ArrowLeft",
-        keyEnd = "End",
-        KeyHome = "Home"
+    export enum Key{
+        KeyUp = 38,
+        KeyRight = 39,
+        KeyDown = 40,
+        keyLeft = 37,
+        keyEnd = 35,
+        KeyHome = 36,
     }
 }
-
-let game: Tetris.Game;
-
-function main(){
-    const canvas = window.document.querySelector('canvas');
-    game = new Tetris.Game(undefined, undefined, undefined, canvas);
-    game.run();
-}
-main();

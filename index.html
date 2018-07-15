@@ -5,9 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Tetris</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" integrity="sha384-Smlep5jCw/wG7hdkwQ/Z5nLIefveQRIY9nfy6xoR1uRYBtpZgI6339F5dgvm/e9B" crossorigin="anonymous">
+    <style>
+        @media (max-height: 900px){
+            .not-important{
+                display: none;
+            }
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%；
+        }
+
+        #content{
+            left: 50%;
+            position: absolute;
+            transform: translate(-50%, 0);
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+        }
+
+        #next{
+            border: 1px white solid;
+        }
+
+        .alert {
+            line-height: 20px;
+            text-align: center;
+        }
+
+        button{
+            display: inline-block;
+        }
+
+        #bgm-title, #sf-title, #scale-title, #ctrl-title{
+            margin-top: 0.5rem;
+            margin-bottom: 0;
+        }
+        #bgm-control, #sf-control, #scale-control{
+            background-color: lightgrey;
+            padding: 0.75rem 2rem;
+        }
+        #ctrl-control{
+            background-color: lightgrey;
+            padding: 0.75rem 1rem;
+        }
+        #ctrl-control-2{
+            background-color: lightgrey;
+            padding: 0 4rem;
+        }
+        #ctrl-control-3{
+            height: 60px;
+            background-color: lightgrey;
+            padding: 0.75rem 0.2rem;
+        }
+
+    </style>
 </head>
 <body>
-    <canvas></canvas>
-    <script src="dist/main.js"></script>
+    <div id="content">
+        <canvas id="game_window"></canvas>
+        <div id = "side-content">
+                <div class="figure" id="next-area">
+                        <figcaption id="next-description" class="figure-caption">
+                                <div class="alert alert-info">下一个</div>
+                            </figcaption>  
+                        <canvas id="next"></canvas>
+                </div>
+                <div class="figure">
+                        <div id="score" class="alert alert-dark">分数： 0</div>
+                </div>
+                <div class="not-important">
+                    <div id="bgm-title" class="alert alert-info">背景音乐</div>
+                    <div id="bgm-control">
+                        <button class="btn btn-success" id="bgm-on">开启</button>
+                        <button class="btn btn-danger" id="bgm-off">关闭</button>
+                    </div>
+                </div>
+                <div class="not-important">
+                    <div id="sf-title" class="alert alert-info">音效</div>
+                    <div id="sf-control">
+                        <button class="btn btn-success" id="sf-on">开启</button>
+                        <button class="btn btn-danger" id="sf-off">关闭</button>
+                    </div>
+                </div>
+                <div>
+                    <div id="scale-title" class="alert alert-info">缩放</div>
+                    <div id="scale-control">
+                        <button class="btn btn-success" id="scale-bigger">放大</button>
+                        <button class="btn btn-danger" id="scale-smaller">缩小</button>
+                    </div>
+                </div>
+                <div id="game-ctrl-erea">
+                        <div id="ctrl-title" class="alert alert-info">游戏控制</div>
+                        <div id="ctrl-control">
+                            <button class="btn btn-success" id="ctrl-start">开始/暂停</button>
+                            <button class="btn btn-danger" id="ctrl-stop">停止</button>
+                        </div>
+                        <div id="ctrl-control-2">
+                            <button class="btn btn-outline-primary btn-lg" id="ctrl-rotate">旋转</button>
+                        </div>
+                        <div id="ctrl-control-3">
+                            <button class="btn btn-outline-info btn-lg" id="ctrl-left" >左</button>
+                            <button class="btn btn-outline-danger btn-lg" id="ctrl-down" >下落</button>
+                            <button class="btn btn-outline-info btn-lg" id="ctrl-right" >右</button>
+                        </div>
+                </div>
+        </div>
+    </div>
+    <script src="dist/index.js"></script>
 </body>
 </html>
